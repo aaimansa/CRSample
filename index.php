@@ -19,7 +19,7 @@ if (!isset($_SESSION['user'])) {
         <?= style_script() ?>
         <script>
             $(document).ready(function() {
-                $('#employee').DataTable();
+                $(strip_tags('#employee', '<br>')).DataTable();
             });
         </script>
 

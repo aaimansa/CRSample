@@ -1,4 +1,5 @@
 <?php include "functions.php"; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,24 +11,47 @@
 </head>
 <body class="text-center">
     <?php
-    $notif = null;
-    if (isset($_POST['username']) && isset($_POST['password'])) {
-
-        session_start();
-        $user = $_POST['username'];
-        $pass = $_POST['password'];
-        $salt = "XDrBmrW9g2fb";
-        $pdo = pdo_connect();
-        $stmt = $pdo->prepare('SELECT * FROM users WHERE username = "' . $user . '" AND password = "' . hash('sha256', $pass . $salt) . '" LIMIT 1');
-        $stmt->execute();
-        $notif = $stmt->rowCount();
-        if ($stmt->rowCount() > 0) {
-            $_SESSION['user'] = $user;
-            header("location: index.php");
-        } else {
-            $notif = "Wrong usename or password";
-        }
+    $errorMsg = null;
+    
+    $check_login_row = $query->fetch_assoc();
+      $total_count = $check_login_row['total_count'];
+    
+    if ($total_count == 3)  {
+        $errorMsg = "To many failed login attempts. Please login after 10 mintus";
     }
+        if (isset($_POST['username']) && isset($_POST['password'])) {
+
+            session_start();
+            $user = $_POST['username'];
+            $pass = $_POST['password'];
+            $salt = "XDrBmrW9g2fb";
+            $pdo = pdo_connect();
+            $stmt = $pdo->prepare('SELECT * FROM users WHERE username = "' . $user . '" AND password = "' . hash('sha256', $pass . $salt) . '" LIMIT 1');
+            $stmt->execute();
+            $errorMsg = $stmt->rowCount();
+            if ($stmt->rowCount() > 0) {
+                $_SESSION['user'] = $user;
+                header("location: index.php");
+            } else {
+                $total_count++;
+                $rem_attm = 3-$total_count;
+                if($rem_attm == 0){
+                    $errorMsg = "To many failed login attempts. Please login after 10 mintus";
+                }   else{
+                $errorMsg = "Wrong usename or password";
+                }
+            }
+            $timeout = 1; // setting timeout dalam menit
+            $logout = "logout.php"; // redirect halaman logout
+            $timeout = $timeout * 60; // menit ke detik
+            if(isset($_SESSION['start_session'])){
+                $elapsed_time = time()-$_SESSION['start_session'];
+                    if($elapsed_time >= $timeout){
+                        session_destroy();
+                    }
+            }  
+            $_SESSION['start_session']=time();
+        }
 
     ?>
     <form class="form-signin" method="POST">
@@ -39,7 +63,7 @@
         <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required>
         <div class="checkbox mb-3">
             <label>
-                <?= $notif ?>
+                <?= $errorMsg ?>
             </label>
         </div>
         <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
