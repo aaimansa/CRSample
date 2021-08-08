@@ -3,26 +3,58 @@
 include 'functions.php';
 $pdo = pdo_connect();
 
-if (isset($_GET['id'])) {
-    if (!empty($_POST)) {
-        $name = $_POST['name'];
-        $email = $_POST['email'];
-        $phone = $_POST['phone'];
-        $title = $_POST['title'];
-        // Insert new record into the contacts table
-        $stmt = $pdo->prepare('UPDATE contacts SET name = ?, email = ?, phone = ?, title = ? WHERE id = ?');
-        $stmt->execute([$name, $email, $phone, $title, $_GET['id']]);
-        header("location:index.php");
-    }
+session_start();
 
-    $stmt = $pdo->prepare('SELECT * FROM contacts WHERE id = ?');
-    $stmt->execute([$_GET['id']]);
-    $contact = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$contact) {
-        die('Contact doesn\'t exist!');
+function csrf_token()   {
+    return bin2hex(rand(100000, 999999));
+}
+
+function create_csrf_token() {
+    $token = csrf_token();
+    $_SESSION['csrf_token'] = $token;
+    $_SESSION['csrf_token_time'] = time();
+    return $token;
+}
+
+function csrf_token_tag() {
+    $token = create_csrf_token();
+    return '<input type="hidden" name="csrf_token" value="' . $token . '">';
+}
+
+function csrf_token_is_valid()  {
+    if(!isset($_POST['csrf_token']))    {
+        return false;
     }
-} else {
-    die('No ID specified!');
+    if (!isset($_SESSION['csrf_token'])) {
+        return false;
+    }
+    return ($_POST['csrf_token'] === $_SESSION['csrf_token']);
+}
+
+if (csrf_token_is_valid())  {
+    if (isset($_GET['id'])) {
+        if (!empty($_POST)) {
+            $name = $_POST['name'];
+            $email = $_POST['email'];
+            $phone = $_POST['phone'];
+            $title = $_POST['title'];
+            // Insert new record into the contacts table
+            $stmt = $pdo->prepare('UPDATE contacts SET name = ?, email = ?, phone = ?, title = ? WHERE id = ?');
+            $stmt->execute([$name, $email, $phone, $title, $_GET['id']]);
+            header("location:index.php");
+        }
+    
+        $stmt = $pdo->prepare('SELECT * FROM contacts WHERE id = ?');
+        $stmt->execute([$_GET['id']]);
+        $contact = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$contact) {
+            die('Contact doesn\'t exist!');
+        }
+    } else {
+        die('No ID specified!');
+    }
+}   else    {
+
 }
 
 ?>

@@ -1,6 +1,21 @@
 <?php
 include "functions.php";
+
 session_start();
+
+function csrf_token()   {
+    return bin2hex(rand(100000, 999999));
+}
+
+function create_csrf_token() {
+    $token = csrf_token();
+    $_SESSION['csrf_token'] = $token;
+    $_SESSION['csrf_token_time'] = time();
+    return $token;
+}
+
+$token = create_csrf_token();
+
 if (!isset($_SESSION['user'])) {
     header("location: login.php");
 } else {
@@ -19,7 +34,7 @@ if (!isset($_SESSION['user'])) {
         <?= style_script() ?>
         <script>
             $(document).ready(function() {
-                $(strip_tags('#employee', '<br>')).DataTable();
+                $('#employee').DataTable();
             });
         </script>
 
